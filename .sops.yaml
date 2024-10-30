@@ -1,0 +1,27 @@
+keys:
+  # Self
+  - &primary age1dr7qkenf8rff3snerkeukprp887rv58xn5p279j56zlmfx4sye5qpt8whs
+  # GitHub Actions
+  - &github age102s72qkdltjszjuzk8ulgrupsu7cjfnwkdls6fhjv9frqq7stg3sjedw95
+creation_rules:
+  # JSON/YAML files
+  - path_regex: src/data/(resume|portfolio)/(resume|experience|projects)\.ya?ml$
+    key_groups:
+      - age:
+          - *primary
+          - *github
+  # Binary files
+  - path_regex: src/data/resume/_(resume\.sh)|(Signifier-(Bold|Regular)(Italic)?\.otf)$
+    key_groups:
+      - age:
+          - *primary
+          - *github
+
+# sops 3.9.0+ only
+stores:
+  json:
+    indent: 2
+  json_binary:
+    indent: 2
+  yaml:
+    indent: 2
