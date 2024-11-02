@@ -1,0 +1,37 @@
+---
+---
+
+<a href="#main">Skip to content</a>
+<style>
+	a {
+		position: absolute;
+	}
+
+	a:not(:active, :focus-visible, :hover) {
+		width: 1px;
+		height: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border-width: 0;
+	}
+
+	a:active,
+	a:focus-visible,
+	a:hover {
+		/* Don't change */
+		margin: 0 auto;
+		display: inline-block;
+		top: 0;
+		z-index: 2;
+
+		/* Can change */
+		padding: .5rem 1rem;
+		color: #fff;
+		background: #000;
+		text-align: center;
+		width: 100%;
+	}
+</style>

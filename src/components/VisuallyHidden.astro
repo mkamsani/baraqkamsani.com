@@ -1,0 +1,30 @@
+---
+import type { HTMLTag, Polymorphic } from 'astro/types';
+type Props<Tag extends HTMLTag> = Polymorphic<{ as: Tag }>;
+const { as: Tag, ...props } = Astro.props;
+---
+
+{
+	(Tag === "br" || Tag === "p") ? (
+		<Tag hidden {...props}><slot /></Tag>
+	) : (
+		<Tag class="visually-hidden" {...props}><slot /></Tag>
+	)
+}
+
+<style>
+	[hidden] {
+		display: none;
+	}
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border-width: 0;
+	}
+</style>
