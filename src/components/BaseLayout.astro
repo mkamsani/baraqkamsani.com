@@ -1,0 +1,32 @@
+---
+import SiteHeader from '~/components/SiteHeader/SiteHeader.astro';
+import SiteFooter from '~/components/SiteFooter/SiteFooter.astro';
+import SkipToContent from "~/components/SkipToContent.astro";
+import VisuallyHidden from "~/components/VisuallyHidden.astro";
+---
+
+<SkipToContent />
+<VisuallyHidden as="p" data-explainer="Spacer for terminal browsers like links and lynx." />
+<div class="page">
+	<SiteHeader />
+	<main id="#main" role="main" class="primary-layout">
+		<slot/>
+	</main>
+	<SiteFooter />
+</div>
+
+<style is:global>
+	:root {
+		--space: 0.5rem;
+	}
+
+	main.primary-layout > * {
+		&:first-child {
+			padding-block-start: 1rem;
+		}
+
+		&:last-child {
+			padding-block-end: 1rem;
+		}
+	}
+</style>

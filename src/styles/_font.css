@@ -53,6 +53,42 @@
 	U+3008-3011, U+3014-3017, U+301C, U+A78B-A78C, U+F8FF;
 }
 
+/* noinspection CssUnknownTarget */
+@font-face {
+	font-family: 'Signifier';
+	font-style: normal;
+	font-weight: 400;
+	src: url('/fonts/signifier-regular.woff2') format('woff2');
+	font-display: swap;
+}
+
+/* noinspection CssUnknownTarget */
+@font-face {
+	font-family: 'Signifier';
+	font-style: italic;
+	font-weight: 400;
+	src: url('/fonts/signifier-regular-italic.woff2') format('woff2');
+	font-display: swap;
+}
+
+/* noinspection CssUnknownTarget */
+@font-face {
+	font-family: 'Signifier';
+	font-style: normal;
+	font-weight: 700;
+	src: url('/fonts/signifier-bold.woff2') format('woff2');
+	font-display: swap;
+}
+
+/* noinspection CssUnknownTarget */
+@font-face {
+	font-family: 'Signifier';
+	font-style: italic;
+	font-weight: 700;
+	src: url('/fonts/signifier-bold-italic.woff2') format('woff2');
+	font-display: swap;
+}
+
 /**
  * Every -font-family-*-fallback has the default emoji fonts for different systems:
  * 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'

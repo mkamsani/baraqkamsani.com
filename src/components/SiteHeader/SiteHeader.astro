@@ -1,0 +1,90 @@
+---
+import Link from '~/components/Link.astro'
+import VisuallyHidden from '~/components/VisuallyHidden.astro'
+import type { HTMLAttributes } from 'astro/types';
+
+interface Props extends HTMLAttributes<'header'> {
+}
+
+const {
+	class: className,
+	...props
+} = Astro.props;
+---
+
+<header id="banner" role="banner" {...props}>
+	<Link href="/">
+		<VisuallyHidden as="span">Home:</VisuallyHidden>
+		<span>Baraq Kamsani</span>
+	</Link>
+</header>
+
+<script>
+	// On larger devices,
+	// the margin-top is added when the screen is at the top of the page.
+	const header: HTMLElement | null = document.getElementById('banner');
+	const threshold = 400;
+	if (header !== null) {
+		window.addEventListener('scroll', () =>
+			header.setAttribute(
+				'data-is-over-threshold',
+				String(window.scrollY > threshold)
+			)
+		);
+	}
+</script>
+
+<style>
+	@media (min-width: 850px) {
+		/*
+		** Screen at top of the page (on page load/JS).
+		*/
+		:global(body.homepage) header:not([data-is-over-threshold]),
+		:global(body.homepage) header[data-is-over-threshold="false"] {
+			--extra-space: 32px;
+		}
+		/*
+		** Screen scroll down (JS).
+		*/
+		:global(body.homepage) header[data-is-over-threshold="true"] {
+			--extra-space: 0;
+		}
+		:global(body.homepage) header[id="banner"] {
+			margin-top: var(--extra-space);
+			transition: margin-top 0.25s ease;
+		}
+	}
+</style>
+
+<style>
+	header {
+		display: flex;
+		justify-content: space-between;
+		max-width: calc(42.875rem + 60px + (var(--padding-inline) * 2));
+		margin-inline: auto;
+		padding-inline: var(--padding-inline);
+		flex-direction: row;
+		align-items: center;
+		--padding-block: 1.5rem;
+		padding-block: 1.5rem	;
+
+		@media (max-width: 450px) {
+			flex-direction: column;
+			align-items: flex-start;
+			padding-block: 1rem;
+			row-gap: 1ex;
+		}
+		z-index: 3;
+	}
+
+	header a {
+		color: inherit;
+		text-decoration: none;
+		flex-basis: 1;
+	}
+
+	header > a[href='/'] {
+		font-size: 1.45rem;
+		font-weight: 700;
+	}
+</style>
