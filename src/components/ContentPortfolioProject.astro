@@ -1,0 +1,167 @@
+---
+import Link from '~/components/Link.astro'
+import VisuallyHidden from '~/components/VisuallyHidden.astro'
+import ImageCarousel from "~/components/ImageCarousel.astro";
+
+interface Props {
+	name: string;
+	url?: URL | string;
+	affiliation: string;
+	startDate: Date;
+	endDate: Date | string;
+	summary: string;
+	technologies: string[];
+	showcase: {src: string, alt: string}[];
+}
+
+const {
+	name,
+	url,
+	affiliation,
+	startDate,
+	// @ts-ignore ts(6133): 'endDate' is declared but its value is never read.
+	endDate,
+	summary,
+	technologies,
+	showcase,
+} = Astro.props;
+
+const year = startDate.getFullYear()
+---
+
+<style>
+	@layer project.reset {
+		.project, .project * {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+		}
+	}
+
+	/*
+	** Cosmetic
+	*/
+
+	.project {
+		padding: min(16px, 2vw);
+		border: 2px solid oklch(92% 0.005 265);
+		border-radius: 12px;
+		&:hover, &:focus-within {
+			box-shadow:
+				0px 0.4px 0.4px          hsl(0deg 0% 77% / 0.22),
+				0px 1px 1px -0.4px       hsl(0deg 0% 77% / 0.21),
+				0px 1.6px 1.6px -0.8px   hsl(0deg 0% 77% / 0.20),
+				0px 2.5px 2.4px -1.2px   hsl(0deg 0% 77% / 0.18),
+				0px 3.8px 3.7px -1.6px   hsl(0deg 0% 77% / 0.17),
+				0px 5.8px 5.7px -1.9px   hsl(0deg 0% 77% / 0.16),
+				0px 8.6px 8.4px -2.3px   hsl(0deg 0% 77% / 0.15),
+				0px 12.4px 12.1px -2.7px hsl(0deg 0% 77% / 0.13),
+				0px 17.5px 17.1px -3.1px hsl(0deg 0% 77% / 0.12),
+				0px 24px 23.4px -3.5px   hsl(0deg 0% 77% / 0.11);
+		}
+		transition: box-shadow 0.2s ease;
+	}
+	:global(.project + .project) {
+		margin-block-start: max(16px, 1.5rem);
+	}
+
+	.Technology {
+		border: 2px solid oklch(92% 0.005 265);
+		padding-inline: 6px;
+		padding-block: 2px;
+		border-radius: 4px;
+		&:hover {
+			box-shadow:
+				0px 0.3px 0.3px        hsl(0deg 0% 45% / 0.66),
+				0px 0.6px 0.6px -0.9px hsl(0deg 0% 45% / 0.57),
+				0px 1.3px 1.2px -1.9px hsl(0deg 0% 45% / 0.48),
+				0px 3px 2.8px -2.8px   hsl(0deg 0% 45% / 0.39),
+				0px 6.3px 5.9px -3.7px hsl(0deg 0% 45% / 0.31);
+		}
+		transition: box-shadow 0.2s ease;
+	}
+
+	.Name, .Name * {
+		font-size: 1.2rem;
+	}
+
+	.DurationAffiliation {
+		opacity: 65%;
+	}
+
+	/*
+	** Layout
+	*/
+
+	.DurationAffiliation br {
+		display: none;
+	}
+
+	.Duration.Duration::after {
+		display: inline;
+		content: " | ";
+		width: 1ch;
+		height: 1ch;
+	}
+
+	.Description {
+		margin-block: 1em;
+	}
+
+	.Technologies {
+		margin-block-start: 0.5rem;
+		display: flex;
+		flex-wrap: wrap;
+		column-gap: 0.75ch;
+		row-gap: 1ch;
+	}
+
+	.Showcase {
+		margin-block: 1rem;
+	}
+
+	img {
+		object-fit: cover;
+	}
+</style>
+
+<li class="project">
+	<div class="NameDurationAffiliation">
+		<span class="Name" role="heading" aria-level="4">
+			<VisuallyHidden as="span">Project Name:</VisuallyHidden>
+			{
+				url ? <Link href={String(url)}>{name}</Link> : <Fragment>{name}</Fragment>
+			}
+		</span>
+		<div class="DurationAffiliation">
+			<VisuallyHidden as="span">Duration:&nbsp;</VisuallyHidden><time class="Duration" datetime={String(year)}>{String(year)}</time>
+			<br aria-hidden="true">
+			<VisuallyHidden as="span">Affiliation:&nbsp;</VisuallyHidden><span class="Affiliation">{affiliation}</span>
+		</div>
+	</div>
+
+	<div class="Description">
+		<VisuallyHidden as="span">Description:</VisuallyHidden>
+		{/* @ts-ignore ts(2322) -> paragraph is valid AriaRole. */}
+		<span role="paragraph" class="justify">{summary}</span>
+	</div>
+
+	<div class="Showcase">
+		{
+			(showcase && showcase.length === 1)
+				? <img src=`/${showcase[0]?.src}` alt={showcase[0]?.alt} style="border-radius: 6px;" />
+				: <ImageCarousel images={showcase} />
+		}
+	</div>
+
+	<div>
+		<VisuallyHidden as="span">Technologies:</VisuallyHidden>
+		<ul class="Technologies">
+			{technologies.map(i =>
+				<li class="Technology">{i}</li>
+			)}
+		</ul>
+	</div>
+
+	<VisuallyHidden as="p"/>
+</li>

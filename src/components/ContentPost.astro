@@ -1,0 +1,79 @@
+---
+import VisuallyHidden from '~/components/VisuallyHidden.astro'
+
+interface Props {
+	id: any;
+	title: string;
+	pubDate: Date;
+	updatedDate: Date;
+}
+
+const {
+	id,
+	title,
+	pubDate,
+	updatedDate,
+	...props
+} = Astro.props;
+
+const formatDate = (date: Date) => date.toLocaleDateString("en-US", {
+	year: "numeric",
+	month: "long",
+	day: "numeric"
+});
+---
+
+<style>
+	.post,
+	.post-dates,
+	.post-date {
+		list-style: none;
+		margin: 0;
+		padding-inline: 0;
+	}
+
+	.post h4 {
+		margin-block-start: 0;
+		margin-block-end: 0;
+	}
+
+	.post:has(+ .post) {
+		margin-block-end: 2rem;
+	}
+
+	.post {
+		display: grid;
+
+		.post-dates {
+			order: 1;
+			color: oklch(30% 0 0);
+		}
+
+		a {
+			order: 2;
+			font-size: 1.2rem;
+			max-width: fit-content;
+		}
+
+	}
+
+</style>
+
+<li class="post" {...props}>
+	<a href={`/${id}`}>{title}</a>
+	<ul class="post-dates">
+		<li class="post-date pubDate">
+			<VisuallyHidden as="span">Posted:</VisuallyHidden>
+			<span>{formatDate(pubDate)}</span>
+		</li>
+		{
+			updatedDate && (
+				<li class="post-date updatedDate">
+					<VisuallyHidden as="span">Updated:</VisuallyHidden>
+					<VisuallyHidden as="span">{formatDate(updatedDate)}</VisuallyHidden>
+				</li>
+			)
+		}
+	</ul>
+	<VisuallyHidden as="p" />
+</li>

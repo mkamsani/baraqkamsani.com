@@ -1,0 +1,76 @@
+---
+interface Props {
+	images: { src: string, alt: string }[];
+}
+
+const {
+	images,
+	...props
+} = Astro.props;
+---
+
+<div {...props}>
+	<ul class="carousel--list">
+		{
+			images.map((image, index) => {
+				return (
+					<Fragment>
+						<li class='carousel--item' data-key={index}>
+							<img src={image.src} alt={image.alt}/>
+						</li>
+					</Fragment>
+				)
+			})
+		}
+	</ul>
+</div>
+
+<style>
+	@layer carousel.reset {
+		ul, li {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+		}
+	}
+
+	/*
+	** Contain image sizes.
+	** Use 95cqi instead of 100cqi,
+	** so it's clear that there's more images to scroll.
+	*/
+	div { container-type: inline-size; }
+	li { max-width: 95cqi; }
+	img { object-fit: cover; border-radius: 6px }
+
+	/*
+	** Scroll Snap
+	*/
+	.carousel--list {
+		position: relative;
+		display: flex;
+		align-items: baseline;
+		overflow-x: scroll;
+		scroll-snap-type: x mandatory;
+	}
+
+	.carousel--item {
+		flex-shrink: 0;
+		scroll-snap-align: start;
+	}
+
+	/*
+	** Space between each image
+	*/
+	.carousel--item {
+		margin-inline: 0.5rem;
+
+		&:first-child {
+			margin-inline-start: 0;
+		}
+
+		&:last-child {
+			margin-inline-end: 0;
+		}
+	}
+</style>
