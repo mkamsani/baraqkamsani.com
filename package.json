@@ -3,11 +3,22 @@
   "type": "module",
   "version": "0.0.1",
   "private": "true",
+  "author": "Baraq Kamsani",
+  "homepage": "https://baraqkamsani.com/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mkamsani/baraqkamsani.com"
+  },
+  "bugs": {
+    "url": "https://github.com/mkamsani/baraqkamsani.com/issues"
+  },
   "scripts": {
     "astro": "astro",
     "build": "astro check && astro build",
     "dev": "astro dev",
-    "preview": "astro preview"
+    "devh": "astro dev --host",
+    "preview": "astro preview",
+    "previewh": "astro preview --host"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",

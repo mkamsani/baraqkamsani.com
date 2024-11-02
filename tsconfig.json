@@ -1,5 +1,16 @@
 {
   "extends": "astro/tsconfigs/strictest",
+  "compilerOptions": {
+    // https://www.typescriptlang.org/tsconfig/#esnext
+    // https://www.typescriptlang.org/tsconfig/#verbatimModuleSyntax
+    "target": "ESNext",
+    "module": "ESNext",
+    "verbatimModuleSyntax": true,
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["src/*"]
+    }
+  },
   "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["dist"]
 }
