@@ -1,0 +1,7 @@
+* text=auto
+*.yaml diff=sopsdiffer
+**/*.bat eol=crlf
+**/*.cmd eol=crlf
+**/*.ps1 eol=lf
+**/*.sh eol=lf
+**/*.json linguist-language=jsonc
