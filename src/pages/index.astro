@@ -1,16 +1,155 @@
 ---
+export const prerender = true;
+import type { portfolioType } from "~/schema/portfolio";
+import { getCollection, getEntry } from 'astro:content';
+import BaseHead from '~/components/BaseHead.astro'
+import BaseLayout from '~/components/BaseLayout.astro'
+import ContentPortfolioExperience from '~/components/ContentPortfolioExperience.astro'
+import ContentPortfolioProject from '~/components/ContentPortfolioProject.astro'
+import ContentPost from '~/components/ContentPost.astro'
+import Link from '~/components/Link.astro'
+import { email, linkedin, github } from '~/lib/socialLinks'
 
+const posts = (await getCollection('blog'))
+	.sort((a, b) =>
+		(b.data.pubDate ? b.data.pubDate.valueOf() : 0) - (a.data.pubDate ? a.data.pubDate.valueOf() : 0),
+	)
+	.filter(post =>
+		import.meta.env.MODE === 'development' || !post.data.draft,
+	);
+
+const experience = (await getEntry('portfolio', 'experience')).data.list;
+const projects = (await getEntry('portfolio', 'projects')).data.list;
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
+<BaseHead></BaseHead>
+<body class="homepage">
+<BaseLayout>
+
+	<style>
+		h2 {
+			font-size: 1.35rem;
+			font-weight: bold;
+		}
+
+		.posts, .projects {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+		}
+
+		.projects {
+			display: flex;
+			flex-direction: column;
+			row-gap: 1.5rem;
+		}
+
+		section + section {
+			margin-block-start: 1rem;
+		}
+
+		section:has(+ section) {
+			margin-block-end: 1rem;
+		}
+
+		p:not(:has(+ p)) {
+			margin: 0;
+		}
+	</style>
+
+	<section>
+		<p>
+			Hi! I'm Baraq.
+			Welcome to my blog and portfolio.
+		</p>
+
+		<p>
+			I'm interested in building products,
+			design systems,
+			user experience,
+			and build tooling.
+
+			In my free time,
+			I enjoy working on software projects I'm passionate about and experimenting with various creative outlets like
+			design,
+			writing,
+			and music.
+		</p>
+
+		<p>
+			I'm currently building software for a mobile app startup,
+			serving as a backend engineer and business analyst.
+			You can find me online at
+			<Link translate="no" href={github}>GitHub</Link>,
+			<Link translate="no" href={linkedin}>LinkedIn</Link>,
+			or reach me by email at
+			<Link href={`mailto:${email}`}>{email}</Link>.
+		</p>
+	</section>
+
+
+	<section>
+		<h2>Blog</h2>
+
+		<ul class="posts">
+			{
+				posts.map(post => {
+					return <Fragment>
+						<ContentPost
+							id={post.id ?? ""}
+							title={post.data.title ?? ""}
+							pubDate={post.data.pubDate ?? new Date()}
+							updatedDate={post.data.updatedDate ?? new Date()}
+						/>
+					</Fragment>;
+				})
+			}
+		</ul>
+	</section>
+
+	<section>
+		<h2>Work Experience</h2>
+
+		{
+			experience.map((work: portfolioType) => {
+				return <Fragment>
+					<ContentPortfolioExperience
+						name={work.name ?? ""}
+						url={work.url ?? ""}
+						affiliation={work.affiliation ?? ""}
+						startDate={work.startDate ?? new Date()}
+						endDate={work.endDate ?? new Date()}
+						summary={work.summary ?? ""}
+						technologies={work.technologies ?? []}
+					/>
+				</Fragment>;
+			})
+		}
+	</section>
+
+	<section>
+		<h2>Projects</h2>
+
+		<ul class="projects">
+			{
+				projects.map((project: portfolioType) => {
+					return <Fragment>
+						<ContentPortfolioProject
+							name={project.name ?? ""}
+							url={project.url ?? ""}
+							affiliation={project.affiliation ?? ""}
+							startDate={project.startDate ?? new Date()}
+							endDate={project.endDate ?? new Date()}
+							summary={project.summary ?? ""}
+							technologies={project.technologies ?? []}
+							showcase={project.showcase ?? []}
+						/>
+					</Fragment>;
+				})
+			}
+		</ul>
+	</section>
+</BaseLayout>
+</body>
 </html>
