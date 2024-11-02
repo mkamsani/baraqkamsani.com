@@ -1,0 +1,48 @@
+/**
+ * Detect a user's browser and their theme preference[1][2],
+ * then apply them conditionally with css cyclic toggles[3].
+ *
+ * [1] https://stackoverflow.com/a/25975282
+ * [2] https://browserstrangeness.bitbucket.io/css_hacks.html
+ * [3] https://lea.verou.me/blog/2024/css-conditionals-now/#cyclic-toggles
+ *
+ * This is an experiment for future use (not imported yet).
+ */
+
+body {
+	--browser: var(--browser-chrome);
+	--browser-chrome: var(--browser,);
+	--browser-safari-dark: var(--browser,);
+	--browser-safari-light: var(--browser,);
+	--browser-firefox-dark: var(--browser,);
+	--browser-firefox-light: var(--browser,);
+}
+
+/* Safari Light */
+_::-webkit-full-page-media,
+_:future,
+:root body {
+	--browser: var(--browser-safari-light);
+}
+
+/* Safari Dark */
+@media screen and (prefers-color-scheme: dark) {
+	_::-webkit-full-page-media,
+	_:future,
+	:root body {
+		--browser: var(--browser-safari-dark);
+	}
+}
+
+@supports (-moz-appearance: none) {
+	/* Firefox Light */
+	:root body {
+		--browser: var(--browser-firefox-light);
+	}
+	@media screen and (prefers-color-scheme: dark) {
+		/* Firefox Dark */
+		:root body {
+			--browser: var(--browser-firefox-dark);
+		}
+	}
+}
