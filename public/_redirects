@@ -1,0 +1,8 @@
+# https://www.netlify.com/docs/redirects/
+
+# RSS redirect
+/feed.xml  /rss.xml
+/feed      /rss.xml
+/atom.xml  /rss.xml
+/atom      /rss.xml
+/rss       /rss.xml
