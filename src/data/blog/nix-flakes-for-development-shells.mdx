@@ -1,0 +1,500 @@
+---
+type: blog
+title: 'Nix Flakes for Development Shells'
+description: 'A practical guide to building ephemeral development shells with Nix Flakes.'
+pubDate: 'Jul 20 2024'
+---
+
+This is a quick tour of Nix as a language and package manager.
+
+I've been using Nix for six months now, and it's really been a plus to me when it comes to managing configurations and
+dev/build environments.
+
+We'll cover the following:
+- Run a one-off binary.
+- Set up a shareable development environment.
+
+## Installing Nix
+
+The idiomatic way to get Nix is through the [Determinate Systems' Nix Installer](https://github.com/DeterminateSystems/nix-installer):
+
+```sh
+curl \
+  --proto '=https' \
+  --tlsv1.2 \
+  -sSf \
+  -L https://install.determinate.systems/nix \
+  | sh -s -- install
+```
+
+If you're skeptical (like me the first time I tried it), we can do it in a Docker container:
+
+```sh
+# Run an Ubuntu container with color terminal support:
+docker run \
+  --rm \
+  -ite \
+  TERM=xterm-256color \
+  --entrypoint=/bin/sh \
+  ubuntu -c "exec bash --rcfile /etc/skel/.bashrc"
+
+# Install curl and systemd:
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y -qq >/dev/null 2>&1
+apt-get install -y -qq curl systemd >/dev/null 2>&1
+
+# Run the Nix Installer script (see previous code block).
+```
+
+You should see a similar prompt after running the installer script:
+
+```text
+info: downloading installer https://install.determinate.systems/...
+Nix install plan (v0.20.1)
+Planner: linux (with default settings)
+
+Planned actions:
+* Create directory `/nix`
+* Extract the bundled Nix (...)
+* Create a directory tree in `/nix`
+* Move the downloaded Nix into `/nix`
+* Create build users (UID 30001-30032) and group (GID 30000)
+* Setup the default Nix profile
+* Place the Nix configuration in `/etc/nix/nix.conf`
+* Configure the shell profiles
+* Configure Nix daemon related settings with systemd
+* Remove directory `/nix/temp-install-dir`
+
+
+Proceed? ([Y]es/[n]o/[e]xplain):
+```
+
+A successful install will output the following (break-lines mine):
+
+```text
+Nix was installed successfully!
+
+To get started using Nix,
+open a new shell or run
+`. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh`
+```
+
+You can source `nix-daemon.sh`, or open a new shell with `exec $SHELL -li`.
+
+### Alternative: A container with Nix installed
+
+If you just want to try Nix in docker (and not install it on your system after),
+use the official docker image:
+
+```sh
+docker run --rm -ite TERM=xterm-256color nixos/nix
+```
+
+Inside the container, run the following commands:
+
+```sh
+mkdir -p ~/.config/nix
+echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+```
+
+## Using `nix`
+
+Let's try running a binary we don't have installed:
+
+```shellsession
+$ command -V cowsay
+cowsay not found
+```
+
+Now, we'll use `nix` to install the binary to `/nix/store`, a special directory for Nix packages.
+
+Nix **does not** install packages to /usr/bin or your home directory.
+
+```shellsession
+$ nix shell "nixpkgs#cowsay"
+$ command -V cowsay
+cowsay is /nix/store/yqz388r6bjfkp3736inwzc5j4v9n4zba-cowsay-3.7.0/bin/cowsay
+
+$ cowsay hello world
+ _____________ 
+< hello world >
+ ------------- 
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
+```
+
+Once we're done, we can exit the ephemeral shell that has cowsay in our PATH:
+
+```shellsession
+$ exit
+exit
+
+$ command -V cowsay
+cowsay not found
+```
+
+What's happening here?
+
+### $PATH env
+
+Directories listed in `PATH` are where common executables are stored:
+
+```shellsession
+$ printf "$PATH" | tr ':' '\n'
+/usr/local/sbin
+/usr/local/bin
+/usr/sbin
+/usr/bin
+/sbin
+```
+
+If we unset PATH, we can't run a lot of things, excluding built-in shell commands:
+
+```shellsession
+$ command -V ls
+ls is a tracked alias for /usr/bin/ls
+
+$ unset PATH
+$ ls
+bash: ls: No such file or directory
+
+$ command -V cd
+cd is a shell builtin
+
+$ command -V pwd
+pwd is a shell builtin
+
+$ cd /etc
+$ pwd
+/etc
+```
+
+Nix adds the `.../bin` directories of its packages to our `PATH` when we run `nix shell`,
+as seen here:
+
+```shellsession
+$ nix shell "nixpkgs#cowsay"
+$ printf "$PATH" | tr ':' '\n'
+/nix/store/k88sdsg1fj9sf4qz3raihqkxrj1yxbyk-cowsay-3.7.0/bin
+/nix/store/3iprssz8zh2sq7mlnjzlfb2a1rdx3lbf-cowsay-3.7.0-man/bin
+/usr/local/sbin
+/usr/local/bin
+/usr/sbin
+/usr/bin
+/sbin
+```
+
+This is really useful if we have Python 3.12 installed, but we need Python 3.9 for a project:
+
+```shellsession
+$ python --version
+Python 3.12.4
+
+$ nix shell "nixpkgs#python39"
+$ python --version
+Python 3.9.19
+
+$ printf "$PATH" | tr ':' '\n'
+/nix/store/i390rzjpc4dzw7biykbrfz2546zn3h9k-python3-3.9.19/bin
+/usr/local/sbin
+/usr/local/bin
+/usr/sbin
+/usr/bin
+/sbin
+```
+
+There are several (and arguably better) ways to switch between different Python versions effectively,
+but the Nix approach can be used for a variety of programming languages, frameworks, and tools.
+
+## Shareable Configurations
+
+tl;dr: You'll need a file called `flake.nix`, in your repository root:
+
+```nix
+{
+  description = "A devShell with GCC 4.9 and Python 3.9 for x86_64-linux";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  outputs = { self, nixpkgs }:
+    let
+      system = "x86_64-linux"; 
+      #        ^^^^^^^^^^^^^^ can be any of the following:
+      # x86_64-linux
+      # x86_64-darwin
+      # aarch64-linux
+      # aarch64-darwin
+      pkgs = nixpkgs.legacyPackages.${system};
+    in
+    {
+      devShells.${system}.default = pkgs.mkShell {
+        packages = [
+          pkgs.gcc49
+          pkgs.python39
+        ];
+      };
+    };
+}
+```
+
+Then, cd into the repository root and run `nix develop`.
+
+Altogether, this is my output:
+
+```shellsession
+$ gcc --version
+bash: command not found: gcc
+
+$ python --version
+Python 3.12.4
+
+$ pwd
+/tmp/nix-flake-example
+
+$ ls -a
+.  ..
+
+$ nano flake.nix # Paste the preceding code block.
+$ ls -a
+.  ..  flake.nix
+
+$ nix develop
+warning: creating lock file '/tmp/nix-flake-example/flake.lock'
+```
+
+In my case, my PS1 (terminal prompt) changed to `user@hostname:/tmp/nix-flake-example$`.
+The following code snippets will continue using `$` for simplicity.
+
+We'll check if GCC 4.9 and Python 3.9 is installed:
+
+```shellsession
+$ ls -a
+.  ..  flake.nix  flake.lock
+
+$ gcc --version
+gcc (GCC) 4.9.4
+Copyright (C) 2015 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+$ python --version
+Python 3.9.19
+```
+
+## Sounds nice?
+
+This post is a brief guide for you to try out Nix shells and development environments (`flake.nix`).
+
+If you're interested in learning more about Nix, I've put together a list of links and additional information for you to start off:
+
+### Search for packages:
+
+You can find packages from [search.nixos.org](https://search.nixos.org).
+
+### Idiomatic flake.nix file
+
+The example above suffers from writing the same code to support multiple systems, like so:
+
+```nix
+{
+  description = "A devShell with Python 3.9 and GCC 4.9";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  outputs = { self, nixpkgs }:
+    {
+      devShells."x86_64-linux".default = pkgs.mkShell {
+        packages = [ pkgs.gcc49 pkgs.python39 ];
+      };
+      devShells."x86_64-darwin".default = pkgs.mkShell {
+        packages = [ pkgs.gcc49 pkgs.python39 ];
+      };
+      devShells."aarch64-linux".default = pkgs.mkShell {
+        packages = [ pkgs.gcc49 pkgs.python39 ];
+      };
+      devShells."aarch64-darwin".default = pkgs.mkShell {
+        packages = [ pkgs.gcc49 pkgs.python39 ];
+      };
+    };
+}
+```
+
+We can write a function (in the Nix language) that takes the list of systems,
+and output `pkgs.mkShell` for all of them...
+
+```nix
+{
+  description = "A devShell with Python 3.9 and GCC 4.9";
+  outputs = { self, nixpkgs }:
+    let
+      supportedSystems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
+
+      forAllSystems = f:
+        nixpkgs.lib.genAttrs supportedSystems (system: f system);
+
+      nixpkgsFor = forAllSystems (system:
+        import nixpkgs {
+          inherit system;
+          overlays = [ ];
+        }
+      );
+    in
+    {
+      devShells = forAllSystems (system:
+        let
+          pkgs = nixpkgsFor.${system};
+        in
+        {
+          default = pkgs.mkShell {
+            packages = [ pkgs.gcc49 pkgs.python39 ];
+          };
+        }
+      );
+    };
+}
+```
+
+... but it's better to rely on a commonly used utility, like flake-parts:
+
+```nix
+{
+  description = "A devShell with Python 3.9 and GCC 4.9";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
+  };
+
+  outputs =
+    inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+        "x86_64-darwin"
+      ];
+      perSystem = { lib, config, self', inputs', pkgs, system, ... }:
+        {
+          devShells.default = pkgs.mkShell {
+            NIX_CONFIG = "experimental-features = nix-command flakes";
+            nativeBuildInputs = [ pkgs.gcc49 pkgs.python39 ];
+          };
+        };
+    };
+}
+```
+
+### Who is using Nix
+
+- Wikipedia's [Projects using Nix](https://en.wikipedia.org/wiki/Nix_(package_manager)#Projects_using_Nix)
+- [GitHub code search of organisations with a top-level Nix file in their repositories](https://github.com/search?q=org%3AGoogle+AND+%28path%3A**%2Fflake.nix+OR+path%3A**%2Fdefault.nix+OR+path%3A**%2Fshell.nix%29&type=code&p=2) 
+
+### Learning Nix
+
+My progress with Nix is as follows:
+
+1. Using Nix in containers and virtual machines
+2. Using Nix in my main machine, through `nix` command and `flake.nix`
+3. Running NixOS in a spare machine
+4. Running NixOS as a daily driver
+
+NixOS (a Linux distribution leveraging the Nix language) might be overkill or unsuitable for your needs (or wants).
+I recommend using the Nix suite of CLI tools and `flake.nix` as a base case.
+
+### Documentation Resources
+
+The Nix documentation team recommends starting with [nix.dev](https://nix.dev/),
+and proceed with other resources on the official list, i.e.  [nixos.org/learn](https://nixos.org/learn/).
+
+Regardless, the list below are the resources which I've used the most:
+
+- Language Syntax:
+  - Official Nix Reference Manual: [nixos.org/manual/nix/unstable](https://nixos.org/manual/nix/unstable)
+  - Explain Nix syntax visually: [zaynetro.com/explainix](https://zaynetro.com/explainix)
+  - Nix `builtins` and nixpkgs `lib` functions: [teu5us.github.io/nix-lib.html](https://teu5us.github.io/nix-lib.html)
+- nixpkgs:
+  - [ryantm.github.io/nixpkgs/](https://ryantm.github.io/nixpkgs/)
+- NixOS and/or dotfiles configuration:
+  - vimjoyer's [Nix Tutorials](https://www.youtube.com/playlist?list=PLko9chwSoP-15ZtZxu64k_CuTzXrFpxPE)
+  - Matthias Benaets' [NixOS Setup Guide](https://www.youtube.com/watch?v=AGVXJ-TIv3Y)
+
+## Closing Notes
+
+### What about NixOS?
+
+NixOS is great. Nix has a module system that can centralize configuration languages (.json, .ini, .toml)
+into the Nix language. For example, [install/uninstalls for databases like postgres](https://search.nixos.org/options?show=services.postgresql.enable) can be toggled with one line. You can leverage modules to easily build servers:
+
+```nix
+# configuration.nix
+{
+  services.postgresql = {
+    enable = true;
+    package = pkgs.postgresql_15;
+    dataDir = "/var/lib/postgresql/15";
+  };
+  services.nginx = {
+    enable = true;
+  };
+}
+```
+
+### Nix is atomic
+
+Earlier we saw how packages are installed to `/nix/store`.
+Traditional package managers would scatter files across system directories.
+Nix's approach (isolation) prevents conflicts between different versions of packages,
+which means that system updates and configuration changes are atomic and reversible.
+
+> Nix is your single source of truth of what you need to build and run your software.
+> You update this single source of truth and it generally just works everywhere.
+> You don't need to maintain multiple descriptions of how to build and run your software anymore.
+> 
+> [Mitchell Hashimoto - Using Nix with Dockerfiles](https://mitchellh.com/writing/nix-with-dockerfiles)
+
+Suffice it to say, I really like Nix because it offers me a reliable and reproducible system environment.
+I can manage multiple versions of software without risking system-wide instability or dependency conflicts.
+
+### Nix is versatile
+
+You can...
+
+- build [packages in a sandbox](https://github.com/NixOS/nixpkgs/blob/23.05/pkgs/tools/text/ripgrep/default.nix#L12-L47).
+- build NixOS images in a [variety of formats](https://github.com/nix-community/nixos-generators?tab=readme-ov-file#supported-formats) (ec2, docker, iso, qcow, etc.).
+- use it for [Terraform](https://terranix.org/documentation/terranix-vs-hcl.html).
+
+But if you're not into that, you can use Nix as a simple development shell manager.
+
+### Nix is a rabbithole
+
+Nix Flakes are still considered an experimental feature by Nix,
+though it is the de-facto standard for working with Nix.
+Because of this,
+you will see tutorials covering the legacy and/or new commands:
+
+- Development shells
+  - Legacy: `nix-shell` uses shell.nix
+  - New: `nix develop` uses flake.nix.
+- Build command
+  - Legacy: `nix-build` uses build.nix
+  - New: `nix build` uses flake.nix.
+
+I'd be remissed if I didn't mention this distinction,
+but this is exactly the sort of dichotomy that leaves a user with more questions than answers.
+Other cons include support only for Linux and macOS (no Windows/*BSD).
+
+<hr />
+
+Drawbacks aside,
+if you're a poweruser or looking to improve your devops,
+I'd still recommend looking into Nix.
+Spend some time hacking away on Nix code, or maybe use nix as a "try-before-you-buy" tool.
+
+Thanks for reading!

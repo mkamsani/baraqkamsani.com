@@ -1,0 +1,81 @@
+---
+type: blog
+title: 'CI Availability and Moving to GitHub'
+description: 'Moving my code forge and simplifying my site.'
+pubDate: 'Nov 02 2024'
+---
+
+## SourceHut and CIs
+
+Up until recently, I've been hosting this site on [SourceHut Pages](https://srht.site/).
+They're strong on the FOSS movement, and I love the simplicity of their CI.
+You get to choose from a variety of [runners](https://man.sr.ht/builds.sr.ht/compatibility.md)
+such as Alpine, FreeBSD, NixOS, Debian, and Ubuntu.
+
+Ever since they've [switched to physical servers](https://sourcehut.org/blog/2024-06-12-infrastructure-updates/#:~:text=We%20decided,workload)
+for their runners, I wasn't able to build my site with `nix build`.
+I discovered that the issue lies in [deadlocks](https://github.com/search?q=repo%3ANixOS%2Fnix+waiting+for+locks+or+build+slots&type=issues),
+possibly from the storage hardware used in their physical runner.
+
+I empathize with their decision to move to physical servers.
+CIs in general can be pretty wasteful:
+each invocation will require a full `npm install` to build my website.
+That's warranted in most cases,
+but I think a solo project could get by with exercising some restraint on triggering deploy runners.
+
+## A new build environment
+
+Regardless, I'm moving to GitHub for my website.
+The code is now [open source](https://github.com/mkamsani/baraqkamsani.com);
+my GitHub Actions calls `netlify-cli` to deploy to Netlify pages.
+That gives me more freedom to work with glue code in `deploy.yaml`,
+and I get the SSR benefits from Netlify.
+
+At the same time,
+I've also simplified the CSS and functionalities on my site.
+There's only two types of pages: a blog page (you're reading it now), and my homepage.
+
+## Moving Slow
+
+> For years, 
+> I never actually came up with anything from scratch. 
+> I'd search sites like dribbble and find 4-5 "references". 
+> I'd take the layout from one, 
+> the color scheme from another, 
+> the typography and spacing from a third. 
+> Learning to skillfully combine existing designs takes some practice, 
+> but it's a heck of a lot faster than learning to create compelling designs from scratch.
+>
+> [Joshua Comeau - How I Built My Blog (Original 2021 Edition)](https://www.joshwcomeau.com/blog/how-i-built-my-blog/)
+
+I think admitting this is like bitter medicine.
+It's fairly trivial to slap a blog template and call it a day,
+but to **copy a design is hard**.
+Design systems are hard, rolling your own components is hard, and CSS takes time.
+
+I've tried the Tailwind/UnoCSS route and hacked a site in a few days.
+I got results,
+but my process paid no attention to how I'm going to maintain this code.
+Revisiting the code made me realize I ought to be more mindful of the process.
+This time,
+I've decided to build my site without Tailwind[^1] and with minimal reliance on external libraries.
+It'll take me more time to layer things on top of one another,
+but I think I've done the base (homepage and blog posts) decently.
+Everything that follows are nice-to-haves.
+
+## Roadmap
+
+In the future,
+I hope to add the following functionalities (non-exhaustive):
+
+- CSS-only dropdowns with the [anchor positioning API](https://developer.mozilla.org/en-US/docs/Web/CSS/anchor)
+- Post [comments that work with static sites](https://darekkay.com/blog/static-site-comments/#self-hosted)
+- [Sidenotes](https://danilafe.com/blog/sidenotes/)
+- Better support for PDF rendering with `@media print`
+- [Interactive](https://github.com/nalgeon/codapi) code snippets
+
+Further down-the-road,
+I'd like to turn all of this into a reusable blog template.
+That deserves a design document of its own I guess.
+
+[^1]: Tailwind is fine, I just like writing vanilla CSS in general.
