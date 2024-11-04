@@ -12,4 +12,11 @@ export default defineConfig({
 		sitemap(),
 		mdx(),
 	],
+	prefetch: {
+		defaultStrategy: 'viewport',
+		prefetchAll: true,
+	},
+	devToolbar: {
+		enabled: false,
+	},
 });
