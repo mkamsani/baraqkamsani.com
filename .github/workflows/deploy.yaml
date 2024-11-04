@@ -1,0 +1,70 @@
+name: Deploy
+
+concurrency: deploy
+
+on:
+  push:
+    branches:
+      - astro
+
+env:
+  DIST: ./dist
+  NETLIFY_FUNCTIONS: ./.netlify
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Install Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Packages
+        run: |
+          nix profile install 'nixpkgs/nixos-unstable#sops'
+          nix profile install 'nixpkgs/nixos-unstable#netlify-cli'
+
+      - name: Decrypt
+        run: |
+           mkdir -p ~/.config/sops/age
+           :
+           printf %s "$AGE_SECRET_KEY" >~/.config/sops/age/keys.txt 2>/dev/null
+           printf %s "$AGE_PUBLIC_KEY" >~/.config/sops/age/pub-keys.txt 2>/dev/null
+           :
+           chmod 400 ~/.config/sops/age/keys.txt 2>/dev/null
+           chmod 444 ~/.config/sops/age/pub-keys.txt 2>/dev/null
+           : # Decrypt files based on the regex path in .sops.yaml
+           grep '^[[:space:]]*-[[:space:]]*path_regex:[[:space:]]*' .sops.yaml \
+             | sed 's/^[[:space:]]*-[[:space:]]*path_regex:[[:space:]]*//' \
+             | while read -r regex
+               do
+                 find . -type f \
+                   | grep -E "$regex" \
+                   | xargs -I {} sops decrypt --in-place {} >/dev/null 2>&1;
+               done
+        env:
+          AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}
+          AGE_PUBLIC_KEY: ${{ secrets.AGE_PUBLIC_KEY }}
+
+      # nix build: flake.nix -> packages.default
+      - name: Build
+        run: |
+          out="$(nix build .^out --no-link --print-out-paths --print-build-logs)"
+          cp -vrL "$out/lib/node_modules/baraqkamsani.com/dist" "$DIST"
+          mkdir -p "$NETLIFY_FUNCTIONS"
+          cp -vrL "$out/lib/node_modules/baraqkamsani.com/.netlify" "$NETLIFY_FUNCTIONS"
+
+      - name: Deploy
+        run: |
+            netlify deploy \
+            --prod \
+            --dir="$DIST" \
+            --message="$(TZ=Asia/Singapore date +"%Y-%m-%dT%H:%M:%S%z")_$(git rev-parse --short=6 HEAD)"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
